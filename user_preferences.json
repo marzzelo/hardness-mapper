@@ -1,0 +1,11 @@
+{
+  "vickers_calibration": 0.41117605566978455,
+  "vickers_load": 500.0,
+  "viewport_maximized": true,
+  "viewport_width": 1895,
+  "viewport_height": 1109,
+  "last_project_folder": "C:\\Python\\hardness-tester\\projects\\sample03",
+  "vickers_n_measurements": 1,
+  "heatmap_calibration": 0.13502181744766303,
+  "heatmap_figure_scale": 1.0
+}

@@ -1,0 +1,9 @@
+dearpygui
+reportlab
+pillow
+rich
+matplotlib
+scipy
+numpy
+plotly
+kaleido
