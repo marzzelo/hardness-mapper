@@ -4,6 +4,47 @@ from datetime import datetime
 import os
 
 
+# Store texture IDs for navigation cards
+_nav_textures = {}
+
+
+def _load_nav_textures():
+    """Load textures for navigation cards from resources folder."""
+    global _nav_textures
+    
+    if _nav_textures:  # Already loaded
+        return _nav_textures
+    
+    resources_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources")
+    
+    images = {
+        "mapeado": "mapeado.png",
+        "tabla": "tabla.png",
+        "vickers": "vickers.png",
+        "heatmap": "mapa de calor.png"
+    }
+    
+    for key, filename in images.items():
+        filepath = os.path.join(resources_dir, filename)
+        if os.path.exists(filepath):
+            width, height, channels, data = dpg.load_image(filepath)
+            
+            with dpg.texture_registry():
+                texture_id = dpg.add_static_texture(
+                    width=width,
+                    height=height,
+                    default_value=data,
+                    tag=f"nav_texture_{key}"
+                )
+            _nav_textures[key] = {
+                "id": texture_id,
+                "width": width,
+                "height": height
+            }
+    
+    return _nav_textures
+
+
 def get_app_version():
     """Read version from version.txt file."""
     version_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "version.txt")
@@ -157,82 +198,115 @@ def showInicioTab(callbacks, fonts):
             
             dpg.add_spacer(height=20)
             
-            # Create themes for colored buttons
-            with dpg.theme(tag="button_theme_mapeado"):
-                with dpg.theme_component(dpg.mvButton):
-                    dpg.add_theme_color(dpg.mvThemeCol_Button, (70, 130, 180, 255))  # Steel blue
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (100, 150, 200, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (50, 110, 160, 255))
-                    dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5)
+            # Load navigation textures
+            nav_textures = _load_nav_textures()
             
-            with dpg.theme(tag="button_theme_tabla"):
-                with dpg.theme_component(dpg.mvButton):
-                    dpg.add_theme_color(dpg.mvThemeCol_Button, (60, 179, 113, 255))  # Medium sea green
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (90, 200, 140, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (40, 160, 95, 255))
-                    dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5)
+            # Card size - square buttons that fit 2 per row
+            # Based on typical right panel width (~600px), with spacing
+            card_size = 270  # Square size for each card
+            card_spacing = 15
             
-            with dpg.theme(tag="button_theme_vickers"):
-                with dpg.theme_component(dpg.mvButton):
-                    dpg.add_theme_color(dpg.mvThemeCol_Button, (255, 140, 0, 255))  # Dark orange
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (255, 165, 50, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (230, 120, 0, 255))
-                    dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5)
+            # Create theme for card buttons with image
+            def create_card_themes(name, base_color):
+                """Create normal and hover themes for a card."""
+                r, g, b = base_color
+                
+                with dpg.theme(tag=f"card_btn_theme_{name}"):
+                    with dpg.theme_component(dpg.mvButton):
+                        dpg.add_theme_color(dpg.mvThemeCol_Button, (r, g, b, 40))
+                        dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (r, g, b, 100))
+                        dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (r, g, b, 150))
+                        dpg.add_theme_color(dpg.mvThemeCol_Border, (r, g, b, 255))
+                        dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 15)
+                        dpg.add_theme_style(dpg.mvStyleVar_FrameBorderSize, 2)
             
-            with dpg.theme(tag="button_theme_hmplot"):
-                with dpg.theme_component(dpg.mvButton):
-                    dpg.add_theme_color(dpg.mvThemeCol_Button, (148, 0, 211, 255))  # Dark violet
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (170, 50, 230, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (130, 0, 190, 255))
-                    dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5)
+            # Create themes for each card
+            create_card_themes("mapeado", (70, 130, 180))
+            create_card_themes("tabla", (60, 179, 113))
+            create_card_themes("vickers", (255, 140, 0))
+            create_card_themes("heatmap", (148, 0, 211))
             
-            # Navigation buttons with spacing
-            dpg.add_text("1. Mapeado de Superficie", color=hex_to_rgba(config["UI.Colors"]["section_title"]))
-            dpg.bind_item_font(dpg.last_item(), fonts["bold"])
-            btn1 = dpg.add_button(
-                label="Ir a Mapeado",
-                width=-1,
-                height=80,
-                callback=lambda: dpg.set_value("tab_bar", "tab_mapping")
-            )
-            dpg.bind_item_theme(btn1, "button_theme_mapeado")
-            dpg.add_text("Cargue la imagen de la superficie y marque los puntos de medición", wrap=-1)
+            # Card data configuration
+            cards = [
+                {
+                    "key": "mapeado",
+                    "title": "1. Mapeado",
+                    "description": "Cargar imagen y marcar puntos",
+                    "tab": "tab_mapping",
+                    "color": (70, 130, 180)
+                },
+                {
+                    "key": "tabla",
+                    "title": "2. Tabla de Puntos",
+                    "description": "Gestionar puntos y asignar imágenes",
+                    "tab": "tab_tabla",
+                    "color": (60, 179, 113)
+                },
+                {
+                    "key": "vickers",
+                    "title": "3. Medición Vickers",
+                    "description": "Medir dureza en cada punto",
+                    "tab": "tab_vickers",
+                    "color": (255, 140, 0)
+                },
+                {
+                    "key": "heatmap",
+                    "title": "4. Mapa de Calor",
+                    "description": "Visualizar resultados y generar mapas",
+                    "tab": "tab_hmplot",
+                    "color": (148, 0, 211)
+                }
+            ]
             
-            dpg.add_spacer(height=20)
+            def nav_callback(sender, app_data, user_data):
+                dpg.set_value("tab_bar", user_data)
             
-            dpg.add_text("2. Tabla de Puntos", color=hex_to_rgba(config["UI.Colors"]["section_title"]))
-            dpg.bind_item_font(dpg.last_item(), fonts["bold"])
-            btn2 = dpg.add_button(
-                label="Ir a HM Tabla",
-                width=-1,
-                height=80,
-                callback=lambda: dpg.set_value("tab_bar", "tab_tabla")
-            )
-            dpg.bind_item_theme(btn2, "button_theme_tabla")
-            dpg.add_text("Gestione los puntos marcados y asigne imágenes para medición", wrap=-1)
+            # Row 1: Mapeado and Tabla  
+            with dpg.group(horizontal=True, horizontal_spacing=card_spacing):
+                for card in cards[:2]:
+                    with dpg.group():
+                        # Square card button with texture
+                        if card["key"] in nav_textures:
+                            btn = dpg.add_image_button(
+                                nav_textures[card["key"]]["id"],
+                                width=card_size,
+                                height=card_size,
+                                callback=nav_callback,
+                                user_data=card["tab"],
+                                tag=f"nav_btn_{card['key']}"
+                            )
+                            dpg.bind_item_theme(btn, f"card_btn_theme_{card['key']}")
+                        
+                        # Title below image
+                        r, g, b = card["color"]
+                        title = dpg.add_text(card["title"], color=(r, g, b, 255))
+                        dpg.bind_item_font(title, fonts["bold"])
+                        
+                        # Description
+                        dpg.add_text(card["description"], color=(180, 180, 180, 255), wrap=card_size)
             
-            dpg.add_spacer(height=20)
+            dpg.add_spacer(height=15)
             
-            dpg.add_text("3. Medición Vickers", color=hex_to_rgba(config["UI.Colors"]["section_title"]))
-            dpg.bind_item_font(dpg.last_item(), fonts["bold"])
-            btn3 = dpg.add_button(
-                label="Ir a Vickers",
-                width=-1,
-                height=80,
-                callback=lambda: dpg.set_value("tab_bar", "tab_vickers")
-            )
-            dpg.bind_item_theme(btn3, "button_theme_vickers")
-            dpg.add_text("Realice las mediciones de dureza Vickers en cada punto", wrap=-1)
-            
-            dpg.add_spacer(height=20)
-            
-            dpg.add_text("4. Visualización de Resultados", color=hex_to_rgba(config["UI.Colors"]["section_title"]))
-            dpg.bind_item_font(dpg.last_item(), fonts["bold"])
-            btn4 = dpg.add_button(
-                label="Ir a HM Plot",
-                width=-1,
-                height=80,
-                callback=lambda: dpg.set_value("tab_bar", "tab_hmplot")
-            )
-            dpg.bind_item_theme(btn4, "button_theme_hmplot")
-            dpg.add_text("Genere mapas de calor y visualice los resultados completos", wrap=-1)
+            # Row 2: Vickers and HM Plot
+            with dpg.group(horizontal=True, horizontal_spacing=card_spacing):
+                for card in cards[2:]:
+                    with dpg.group():
+                        # Square card button with texture
+                        if card["key"] in nav_textures:
+                            btn = dpg.add_image_button(
+                                nav_textures[card["key"]]["id"],
+                                width=card_size,
+                                height=card_size,
+                                callback=nav_callback,
+                                user_data=card["tab"],
+                                tag=f"nav_btn_{card['key']}"
+                            )
+                            dpg.bind_item_theme(btn, f"card_btn_theme_{card['key']}")
+                        
+                        # Title below image
+                        r, g, b = card["color"]
+                        title = dpg.add_text(card["title"], color=(r, g, b, 255))
+                        dpg.bind_item_font(title, fonts["bold"])
+                        
+                        # Description
+                        dpg.add_text(card["description"], color=(180, 180, 180, 255), wrap=card_size)
