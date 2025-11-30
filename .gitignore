@@ -147,3 +147,18 @@ cython_debug/
 .DS_Store
 Thumbs.db
 /*.pdf
+
+# ========== Portable Build ===========
+# Carpetas de construcción temporal
+build_portable/
+build_update/
+
+# Python embeddable descargado (cache)
+python-*.zip
+python-*-embed-*.zip
+
+# get-pip.py (cache)
+get-pip.py
+
+# ZIPs generados en installer/
+installer/*.zip

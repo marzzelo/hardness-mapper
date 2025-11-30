@@ -1,6 +1,17 @@
 import dearpygui.dearpygui as dpg
 from config import get_config, hex_to_rgba
 from datetime import datetime
+import os
+
+
+def get_app_version():
+    """Read version from version.txt file."""
+    version_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "version.txt")
+    try:
+        with open(version_file, "r") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return "Unknown"
 
 
 def showInicioTab(callbacks, fonts):
@@ -124,8 +135,9 @@ def showInicioTab(callbacks, fonts):
             
             dpg.add_spacer(height=20)
             
-            # Main application title (will be centered dynamically)
-            title_item = dpg.add_text("VICKERS MAPPING PRO", tag="app_title", 
+            # Main application title with version
+            app_version = get_app_version()
+            title_item = dpg.add_text(f"VICKERS MAPPING PRO - Versión {app_version}", tag="app_title", 
                                      color=hex_to_rgba(config["UI.Colors"]["yellow_text"]))
             dpg.bind_item_font(title_item, fonts["title"])
             
