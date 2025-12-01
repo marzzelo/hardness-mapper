@@ -71,8 +71,8 @@ if exist "%INSTALL_DIR%\app\version.txt" (
     set /p CURRENT_VERSION=<"%INSTALL_DIR%\app\version.txt"
 )
 
-REM Extraer version.txt del ZIP para verificar
-powershell -Command "$zip = [System.IO.Compression.ZipFile]::OpenRead('%UPDATE_ZIP%'); $entry = $zip.Entries | Where-Object { $_.Name -eq 'version.txt' -and $_.FullName -notlike 'app/*' }; if ($entry) { $reader = [System.IO.StreamReader]::new($entry.Open()); $reader.ReadLine() | Out-File -FilePath '%TEMP%\new_version.txt' -NoNewline; $reader.Close() }; $zip.Dispose()"
+REM Extraer version.txt del ZIP para verificar (compatible con PS 2.0+)
+powershell -Command "$shell = New-Object -ComObject Shell.Application; $zip = $shell.NameSpace('%UPDATE_ZIP%'); foreach($item in $zip.Items()) { if($item.Name -eq 'version.txt') { $content = [System.IO.File]::ReadAllText($item.Path); $content.Split([Environment]::NewLine)[0] | Out-File -FilePath '%TEMP%\new_version.txt' -Encoding ASCII } }" 2>nul
 
 if exist "%TEMP%\new_version.txt" (
     set /p NEW_VERSION=<"%TEMP%\new_version.txt"
@@ -119,7 +119,8 @@ REM Extraer a carpeta temporal
 set TEMP_UPDATE=%TEMP%\hm_update_%RANDOM%
 mkdir "%TEMP_UPDATE%"
 
-powershell -Command "Expand-Archive -Path '%UPDATE_ZIP%' -DestinationPath '%TEMP_UPDATE%' -Force"
+REM Usar Shell.Application para compatibilidad con PowerShell antiguo
+powershell -Command "$shell = New-Object -ComObject Shell.Application; $zip = $shell.NameSpace('%UPDATE_ZIP%'); $dest = $shell.NameSpace('%TEMP_UPDATE%'); $dest.CopyHere($zip.Items(), 16)"
 if errorlevel 1 (
     echo ERROR: No se pudo extraer el archivo de actualizacion
     rmdir /s /q "%TEMP_UPDATE%"

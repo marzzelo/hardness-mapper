@@ -71,17 +71,20 @@ REM ============================================================
 REM  Crear carpeta e instalar
 REM ============================================================
 echo [1/3] Creando carpeta de instalacion...
-mkdir "%INSTALL_DIR%"
-if errorlevel 1 (
-    echo ERROR: No se pudo crear la carpeta de instalacion
-    pause
-    exit /b 1
+if not exist "%INSTALL_DIR%" (
+    mkdir "%INSTALL_DIR%"
+    if errorlevel 1 (
+        echo ERROR: No se pudo crear la carpeta de instalacion
+        pause
+        exit /b 1
+    )
 )
 echo       OK
 echo.
 
 echo [2/3] Extrayendo archivos (esto puede tardar)...
-powershell -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%INSTALL_DIR%' -Force"
+REM Usar Shell.Application para compatibilidad con PowerShell antiguo
+powershell -Command "$shell = New-Object -ComObject Shell.Application; $zip = $shell.NameSpace('%ZIP_FILE%'); $dest = $shell.NameSpace('%INSTALL_DIR%'); $dest.CopyHere($zip.Items(), 16)"
 if errorlevel 1 (
     echo ERROR: No se pudo extraer el archivo ZIP
     pause
